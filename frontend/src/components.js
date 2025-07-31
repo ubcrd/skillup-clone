@@ -238,7 +238,7 @@ export const CoursesSection = ({ onCourseClick }) => {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           {courses.map((course) => (
-            <CourseCard key={course.id} course={course} />
+            <CourseCard key={course.id} course={course} onClick={onCourseClick} />
           ))}
         </div>
         
