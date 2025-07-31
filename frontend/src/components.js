@@ -1,30 +1,107 @@
 import React, { useState } from 'react';
 
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+
 // Header Component
-export const Header = () => {
+export const Header = ({ user, onLogout }) => {
+  const navigate = useNavigate();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const handleLogout = () => {
+    onLogout();
+    navigate('/');
+    setIsMenuOpen(false);
+  };
+
   return (
-    <header className="bg-black text-white px-6 py-4 flex justify-between items-center">
+    <header className="bg-black text-white px-6 py-4 flex justify-between items-center relative z-50">
       <div className="flex items-center">
-        <div className="text-2xl font-bold flex items-center">
+        <Link to="/" className="text-2xl font-bold flex items-center hover:opacity-80 transition-opacity">
           <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center mr-3">
             <div className="w-6 h-6 bg-black rounded-full flex items-center justify-center">
               <div className="text-white text-xs">❄</div>
             </div>
           </div>
           Skilio
-        </div>
+        </Link>
       </div>
-      <nav className="flex items-center space-x-6">
-        <a href="#" className="text-gray-300 hover:text-white transition-colors">
-          Empieza aquí
-        </a>
-        <a href="#" className="text-gray-300 hover:text-white transition-colors">
-          Iniciar Sesión
-        </a>
-        <button className="bg-gray-800 hover:bg-gray-700 px-6 py-2 rounded-lg transition-colors">
-          Suscríbirse
-        </button>
+      
+      <nav className="hidden md:flex items-center space-x-6">
+        <Link to="/cursos" className="text-gray-300 hover:text-white transition-colors">
+          Todos los cursos
+        </Link>
+        {user ? (
+          <>
+            <Link to="/dashboard" className="text-gray-300 hover:text-white transition-colors">
+              Mi Dashboard
+            </Link>
+            <div className="relative">
+              <button 
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
+              >
+                <img 
+                  src={user.avatar || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=32&h=32&fit=crop&crop=face"} 
+                  alt="Avatar"
+                  className="w-8 h-8 rounded-full"
+                />
+                <span>{user.name}</span>
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+              
+              {isMenuOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-md shadow-lg py-1 z-50">
+                  <Link 
+                    to="/perfil" 
+                    className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Mi Perfil
+                  </Link>
+                  <Link 
+                    to="/dashboard" 
+                    className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Dashboard
+                  </Link>
+                  <button 
+                    onClick={handleLogout}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
+                  >
+                    Cerrar Sesión
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            <Link to="/login" className="text-gray-300 hover:text-white transition-colors">
+              Iniciar Sesión
+            </Link>
+            <Link 
+              to="/register" 
+              className="bg-gray-800 hover:bg-gray-700 px-6 py-2 rounded-lg transition-colors"
+            >
+              Suscríbirse
+            </Link>
+          </>
+        )}
       </nav>
+      
+      {/* Mobile menu button */}
+      <button 
+        onClick={() => setIsMenuOpen(!isMenuOpen)}
+        className="md:hidden text-white"
+      >
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
     </header>
   );
 };
