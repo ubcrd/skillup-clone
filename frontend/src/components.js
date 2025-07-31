@@ -12,6 +12,24 @@ export const Header = ({ user, onLogout }) => {
     setIsMenuOpen(false);
   };
 
+  const getDashboardLink = () => {
+    if (!user) return '/dashboard';
+    switch (user.role) {
+      case 'admin': return '/admin/dashboard';
+      case 'instructor': return '/instructor/dashboard';
+      default: return '/dashboard';
+    }
+  };
+
+  const getDashboardText = () => {
+    if (!user) return 'Mi Dashboard';
+    switch (user.role) {
+      case 'admin': return 'Panel Admin';
+      case 'instructor': return 'Panel Instructor';
+      default: return 'Mi Dashboard';
+    }
+  };
+
   return (
     <header className="bg-black text-white px-6 py-4 flex justify-between items-center relative z-50">
       <div className="flex items-center">
@@ -31,9 +49,34 @@ export const Header = ({ user, onLogout }) => {
         </Link>
         {user ? (
           <>
-            <Link to="/dashboard" className="text-gray-300 hover:text-white transition-colors">
-              Mi Dashboard
+            <Link to={getDashboardLink()} className="text-gray-300 hover:text-white transition-colors">
+              {getDashboardText()}
             </Link>
+            
+            {/* Admin specific links */}
+            {user.role === 'admin' && (
+              <>
+                <Link to="/admin/courses" className="text-gray-300 hover:text-white transition-colors">
+                  Gestión Cursos
+                </Link>
+                <Link to="/admin/certificates" className="text-gray-300 hover:text-white transition-colors">
+                  Certificados
+                </Link>
+              </>
+            )}
+            
+            {/* Instructor specific links */}
+            {user.role === 'instructor' && (
+              <>
+                <Link to="/instructor/courses" className="text-gray-300 hover:text-white transition-colors">
+                  Mis Cursos
+                </Link>
+                <Link to="/instructor/certificates" className="text-gray-300 hover:text-white transition-colors">
+                  Certificados
+                </Link>
+              </>
+            )}
+            
             <div className="relative">
               <button 
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -45,6 +88,14 @@ export const Header = ({ user, onLogout }) => {
                   className="w-8 h-8 rounded-full"
                 />
                 <span>{user.name}</span>
+                {user.role && (
+                  <span className={`px-2 py-1 text-xs rounded-full ${
+                    user.role === 'admin' ? 'bg-red-600' : 
+                    user.role === 'instructor' ? 'bg-blue-600' : 'bg-gray-600'
+                  }`}>
+                    {user.role}
+                  </span>
+                )}
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>
@@ -60,12 +111,51 @@ export const Header = ({ user, onLogout }) => {
                     Mi Perfil
                   </Link>
                   <Link 
-                    to="/dashboard" 
+                    to={getDashboardLink()} 
                     className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    Dashboard
+                    {getDashboardText()}
                   </Link>
+                  
+                  {user.role === 'admin' && (
+                    <>
+                      <Link 
+                        to="/admin/courses" 
+                        className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Gestión de Cursos
+                      </Link>
+                      <Link 
+                        to="/admin/certificates" 
+                        className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Sistema de Certificados
+                      </Link>
+                    </>
+                  )}
+                  
+                  {user.role === 'instructor' && (
+                    <>
+                      <Link 
+                        to="/instructor/courses" 
+                        className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Gestionar Mis Cursos
+                      </Link>
+                      <Link 
+                        to="/instructor/certificates" 
+                        className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Mis Certificados
+                      </Link>
+                    </>
+                  )}
+                  
                   <button 
                     onClick={handleLogout}
                     className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
