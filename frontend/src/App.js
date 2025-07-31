@@ -16,6 +16,12 @@ import {
   Dashboard,
   ProfilePage
 } from './pages';
+import {
+  AdminDashboard,
+  InstructorDashboard,
+  CourseManagement,
+  CertificateSystem
+} from './adminPages';
 
 // Home Page Component
 const HomePage = ({ onCourseClick }) => {
@@ -55,6 +61,7 @@ function App() {
       <div className="App bg-black min-h-screen">
         <Header user={user} onLogout={handleLogout} />
         <Routes>
+          {/* Public Routes */}
           <Route 
             path="/" 
             element={<HomePage onCourseClick={handleCourseClick} />} 
@@ -75,6 +82,8 @@ function App() {
             path="/cursos" 
             element={<AllCoursesPage />} 
           />
+          
+          {/* Student Routes */}
           <Route 
             path="/dashboard" 
             element={<Dashboard user={user} />} 
@@ -82,6 +91,40 @@ function App() {
           <Route 
             path="/perfil" 
             element={<ProfilePage user={user} />} 
+          />
+          
+          {/* Admin Routes */}
+          <Route 
+            path="/admin/dashboard" 
+            element={<AdminDashboard user={user} />} 
+          />
+          <Route 
+            path="/admin/courses" 
+            element={<CourseManagement user={user} />} 
+          />
+          <Route 
+            path="/admin/certificates" 
+            element={<CertificateSystem user={user} />} 
+          />
+          
+          {/* Instructor Routes */}
+          <Route 
+            path="/instructor/dashboard" 
+            element={<InstructorDashboard user={user} />} 
+          />
+          <Route 
+            path="/instructor/courses" 
+            element={<CourseManagement user={user} />} 
+          />
+          <Route 
+            path="/instructor/certificates" 
+            element={<CertificateSystem user={user} />} 
+          />
+          
+          {/* Certificate Routes */}
+          <Route 
+            path="/certificates" 
+            element={<CertificateSystem user={user} />} 
           />
         </Routes>
         <Footer />
