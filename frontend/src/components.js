@@ -318,9 +318,12 @@ export const CoursesSection = ({ onCourseClick }) => {
         </div>
         
         <div className="text-center">
-          <button className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-300 transform hover:scale-105">
+          <Link 
+            to="/cursos"
+            className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-300 transform hover:scale-105 inline-block"
+          >
             Ver todos los cursos
-          </button>
+          </Link>
         </div>
       </div>
     </section>
