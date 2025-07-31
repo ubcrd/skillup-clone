@@ -365,7 +365,14 @@ export const Footer = () => {
 
 // Modal Component for Course Details
 export const CourseModal = ({ course, isOpen, onClose }) => {
+  const navigate = useNavigate();
+  
   if (!isOpen || !course) return null;
+
+  const handleStartCourse = () => {
+    navigate(`/course/${course.id}`);
+    onClose();
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
@@ -420,10 +427,10 @@ export const CourseModal = ({ course, isOpen, onClose }) => {
           </div>
           
           <button 
-            onClick={onClose}
+            onClick={handleStartCourse}
             className="w-full bg-orange-500 hover:bg-orange-600 text-white py-4 rounded-lg text-lg font-semibold transition-colors"
           >
-            Comenzar curso
+            Ver curso completo
           </button>
         </div>
       </div>
