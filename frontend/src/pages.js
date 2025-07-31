@@ -75,6 +75,7 @@ export const LoginPage = ({ onLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [userType, setUserType] = useState('student');
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -83,17 +84,39 @@ export const LoginPage = ({ onLogin }) => {
     
     // Simulate API call
     setTimeout(() => {
-      const userData = {
+      let userData = {
         id: 1,
         name: email.split('@')[0],
         email: email,
         avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=50&h=50&fit=crop&crop=face",
         enrolledCourses: [1, 2],
-        completedLessons: 5
+        completedLessons: 5,
+        role: userType
       };
+
+      // Demo users for different roles
+      if (email === 'admin@skilio.com') {
+        userData.role = 'admin';
+        userData.name = 'Admin';
+      } else if (email === 'instructor@skilio.com') {
+        userData.role = 'instructor';
+        userData.name = 'María González';
+      }
+
       onLogin(userData);
       setIsLoading(false);
-      navigate('/dashboard');
+      
+      // Redirect based on role
+      switch (userData.role) {
+        case 'admin':
+          navigate('/admin/dashboard');
+          break;
+        case 'instructor':
+          navigate('/instructor/dashboard');
+          break;
+        default:
+          navigate('/dashboard');
+      }
     }, 1500);
   };
 
@@ -103,6 +126,17 @@ export const LoginPage = ({ onLogin }) => {
         <div className="text-center">
           <h2 className="text-3xl font-bold text-white">Iniciar Sesión</h2>
           <p className="mt-2 text-gray-400">Accede a tu cuenta de Skilio</p>
+        </div>
+        
+        {/* Demo Accounts Info */}
+        <div className="bg-gray-900 rounded-lg p-4 text-sm">
+          <h3 className="text-white font-medium mb-2">Cuentas de Demo:</h3>
+          <div className="space-y-1 text-gray-400">
+            <p><strong className="text-blue-400">Admin:</strong> admin@skilio.com</p>
+            <p><strong className="text-green-400">Instructor:</strong> instructor@skilio.com</p>
+            <p><strong className="text-orange-400">Estudiante:</strong> cualquier@email.com</p>
+            <p className="text-xs mt-2">Contraseña: cualquiera</p>
+          </div>
         </div>
         
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
