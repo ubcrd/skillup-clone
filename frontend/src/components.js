@@ -145,7 +145,7 @@ export const CourseCard = ({ course, onClick }) => {
 };
 
 // Courses Section
-export const CoursesSection = () => {
+export const CoursesSection = ({ onCourseClick }) => {
   const courses = [
     {
       id: 1,
