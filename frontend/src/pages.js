@@ -1,123 +1,46 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { CourseCard } from './components';
+import { useAuth } from './hooks/useAuth';
+import { coursesAPI, enrollmentsAPI } from './services/api';
 
-// Mock data for courses
-const coursesData = [
-  {
-    id: 1,
-    title: "Domina tus finanzas personales desde cero",
-    category: "Inversiones",
-    duration: "3h 22min",
-    description: "Aprende a tomar el control de tu dinero desde cero y de forma sencilla de forma definitiva.",
-    image: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=400&q=80",
-    gradient: "#10B981, #059669",
-    icon: "💰",
-    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-    lessons: 12,
-    students: 1543,
-    rating: 4.8,
-    instructor: "María González",
-    instructorAvatar: "https://images.unsplash.com/photo-1494790108755-2616b9c5f5e7?w=50&h=50&fit=crop&crop=face"
-  },
-  {
-    id: 2,
-    title: "Curso completo de ChatGPT desde cero",
-    category: "Tecnología",
-    duration: "3h 45min",
-    description: "Aprende a utilizar ChatGPT para resolver problemas, optimizar tareas y mejorar tu productividad.",
-    image: "https://images.unsplash.com/photo-1697577418970-95d99b5a55cf?auto=format&fit=crop&w=400&q=80",
-    gradient: "#06B6D4, #0891B2",
-    icon: "🤖",
-    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-    lessons: 15,
-    students: 2847,
-    rating: 4.9,
-    instructor: "Carlos Rodríguez",
-    instructorAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=50&h=50&fit=crop&crop=face"
-  },
-  {
-    id: 3,
-    title: "Crea un canal de YouTube sin hacer vídeos",
-    category: "Marketing",
-    duration: "2h 19min",
-    description: "Aprende a crear un canal automatizado que genere ingresos sin la necesidad de grabar vídeos.",
-    image: "https://images.unsplash.com/photo-1459184070881-58235578f004?auto=format&fit=crop&w=400&q=80",
-    gradient: "#EF4444, #DC2626",
-    icon: "▶️",
-    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-    lessons: 8,
-    students: 923,
-    rating: 4.7,
-    instructor: "Ana Martínez",
-    instructorAvatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=50&h=50&fit=crop&crop=face"
-  },
-  {
-    id: 4,
-    title: "Cómo ganar dinero con el Arbitraje",
-    category: "Inversiones",
-    duration: "1h 02min",
-    description: "Descubre una estrategia efectiva para operar con criptoactivos y registra tus operaciones paso a paso.",
-    image: "https://images.unsplash.com/photo-1640161704729-cbe966a08476?auto=format&fit=crop&w=400&q=80",
-    gradient: "#F59E0B, #D97706",
-    icon: "₿",
-    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-    lessons: 6,
-    students: 1256,
-    rating: 4.6,
-    instructor: "Luis Fernández",
-    instructorAvatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=50&h=50&fit=crop&crop=face"
-  }
-];
 
 // Login Page
-export const LoginPage = ({ onLogin }) => {
+export const LoginPage = () => {
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [userType, setUserType] = useState('student');
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      let userData = {
-        id: 1,
-        name: email.split('@')[0],
-        email: email,
-        avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=50&h=50&fit=crop&crop=face",
-        enrolledCourses: [1, 2],
-        completedLessons: 5,
-        role: userType
-      };
-
-      // Demo users for different roles
-      if (email === 'admin@skilio.com') {
-        userData.role = 'admin';
-        userData.name = 'Admin';
-      } else if (email === 'instructor@skilio.com') {
-        userData.role = 'instructor';
-        userData.name = 'María González';
-      }
-
-      onLogin(userData);
-      setIsLoading(false);
+    try {
+      const result = await login({ email, password });
       
-      // Redirect based on role
-      switch (userData.role) {
-        case 'admin':
-          navigate('/admin/dashboard');
-          break;
-        case 'instructor':
-          navigate('/instructor/dashboard');
-          break;
-        default:
-          navigate('/dashboard');
+      if (result.success) {
+        // Redirect based on role
+        switch (result.user.role) {
+          case 'admin':
+            navigate('/admin/dashboard');
+            break;
+          case 'instructor':
+            navigate('/instructor/dashboard');
+            break;
+          default:
+            navigate('/dashboard');
+        }
+      } else {
+        setError(result.error);
       }
-    }, 1500);
+    } catch (error) {
+      setError('Error al iniciar sesión. Inténtalo de nuevo.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -135,9 +58,15 @@ export const LoginPage = ({ onLogin }) => {
             <p><strong className="text-blue-400">Admin:</strong> admin@skilio.com</p>
             <p><strong className="text-green-400">Instructor:</strong> instructor@skilio.com</p>
             <p><strong className="text-orange-400">Estudiante:</strong> cualquier@email.com</p>
-            <p className="text-xs mt-2">Contraseña: cualquiera</p>
+            <p className="text-xs mt-2">Contraseña: password</p>
           </div>
         </div>
+        
+        {error && (
+          <div className="bg-red-900 border border-red-700 text-red-100 px-4 py-3 rounded-lg">
+            {error}
+          </div>
+        )}
         
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
@@ -217,7 +146,8 @@ export const LoginPage = ({ onLogin }) => {
 };
 
 // Register Page
-export const RegisterPage = ({ onLogin }) => {
+export const RegisterPage = () => {
+  const { register } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -225,6 +155,7 @@ export const RegisterPage = ({ onLogin }) => {
     confirmPassword: ''
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -236,27 +167,32 @@ export const RegisterPage = ({ onLogin }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    
     if (formData.password !== formData.confirmPassword) {
-      alert('Las contraseñas no coinciden');
+      setError('Las contraseñas no coinciden');
       return;
     }
     
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      const userData = {
-        id: 1,
+    try {
+      const result = await register({
         name: formData.name,
         email: formData.email,
-        avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=50&h=50&fit=crop&crop=face",
-        enrolledCourses: [],
-        completedLessons: 0
-      };
-      onLogin(userData);
+        password: formData.password
+      });
+      
+      if (result.success) {
+        navigate('/dashboard');
+      } else {
+        setError(result.error);
+      }
+    } catch (error) {
+      setError('Error al registrarse. Inténtalo de nuevo.');
+    } finally {
       setIsLoading(false);
-      navigate('/dashboard');
-    }, 1500);
+    }
   };
 
   return (
@@ -266,6 +202,12 @@ export const RegisterPage = ({ onLogin }) => {
           <h2 className="text-3xl font-bold text-white">Crear Cuenta</h2>
           <p className="mt-2 text-gray-400">Únete a Skilio y empieza a aprender</p>
         </div>
+        
+        {error && (
+          <div className="bg-red-900 border border-red-700 text-red-100 px-4 py-3 rounded-lg">
+            {error}
+          </div>
+        )}
         
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
@@ -362,20 +304,69 @@ export const RegisterPage = ({ onLogin }) => {
 // Course Page
 export const CoursePage = () => {
   const { id } = useParams();
+  const { user, isAuthenticated } = useAuth();
   const [course, setCourse] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [currentLesson, setCurrentLesson] = useState(0);
-  const [isEnrolled, setIsEnrolled] = useState(true);
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [enrolling, setEnrolling] = useState(false);
 
   useEffect(() => {
-    // Find course by ID
-    const foundCourse = coursesData.find(c => c.id === parseInt(id));
-    setCourse(foundCourse);
-  }, [id]);
+    const fetchCourse = async () => {
+      try {
+        const courseData = await coursesAPI.getCourse(id);
+        setCourse(courseData);
+        
+        // Check if user is enrolled
+        if (isAuthenticated) {
+          const enrollments = await enrollmentsAPI.getMyEnrollments();
+          const enrollment = enrollments.find(e => e.course_id === id);
+          setIsEnrolled(!!enrollment);
+        }
+      } catch (error) {
+        console.error('Error fetching course:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCourse();
+  }, [id, isAuthenticated]);
+
+  const handleEnroll = async () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+
+    setEnrolling(true);
+    try {
+      await enrollmentsAPI.enrollInCourse(id);
+      setIsEnrolled(true);
+    } catch (error) {
+      console.error('Error enrolling in course:', error);
+    } finally {
+      setEnrolling(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white text-xl">Cargando curso...</div>
+      </div>
+    );
+  }
 
   if (!course) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-white text-xl">Cargando curso...</div>
+        <div className="text-center">
+          <div className="text-white text-xl mb-4">Curso no encontrado</div>
+          <Link to="/cursos" className="text-orange-500 hover:text-orange-400">
+            Ver todos los cursos
+          </Link>
+        </div>
       </div>
     );
   }
@@ -433,12 +424,12 @@ export const CoursePage = () => {
                 
                 <div className="flex items-center mb-6">
                   <img 
-                    src={course.instructorAvatar} 
-                    alt={course.instructor}
+                    src={course.instructor_avatar} 
+                    alt={course.instructor_name}
                     className="w-12 h-12 rounded-full mr-4"
                   />
                   <div>
-                    <h3 className="text-white font-medium">{course.instructor}</h3>
+                    <h3 className="text-white font-medium">{course.instructor_name}</h3>
                     <p className="text-gray-400 text-sm">Instructor</p>
                   </div>
                   <div className="ml-auto flex items-center">
@@ -487,10 +478,11 @@ export const CoursePage = () => {
               
               {!isEnrolled && (
                 <button 
-                  onClick={() => setIsEnrolled(true)}
-                  className="w-full mt-6 bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-lg font-semibold transition-colors"
+                  onClick={handleEnroll}
+                  disabled={enrolling}
+                  className="w-full mt-6 bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-lg font-semibold transition-colors disabled:opacity-50"
                 >
-                  Inscribirse al curso
+                  {enrolling ? 'Inscribiendo...' : 'Inscribirse al curso'}
                 </button>
               )}
             </div>
@@ -505,15 +497,28 @@ export const CoursePage = () => {
 export const AllCoursesPage = () => {
   const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [searchTerm, setSearchTerm] = useState('');
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const categories = ['Todos', 'Inversiones', 'Tecnología', 'Marketing', 'Ecommerce'];
 
-  const filteredCourses = coursesData.filter(course => {
-    const matchesCategory = selectedCategory === 'Todos' || course.category === selectedCategory;
-    const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         course.description.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const coursesData = await coursesAPI.getCourses({
+          category: selectedCategory !== 'Todos' ? selectedCategory : undefined,
+          search: searchTerm || undefined
+        });
+        setCourses(coursesData);
+      } catch (error) {
+        console.error('Error fetching courses:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCourses();
+  }, [selectedCategory, searchTerm]);
 
   return (
     <div className="min-h-screen bg-black py-12 px-6">
@@ -560,15 +565,78 @@ export const AllCoursesPage = () => {
         </div>
 
         {/* Courses Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-          {filteredCourses.map(course => (
-            <Link key={course.id} to={`/course/${course.id}`}>
-              <CourseCard course={course} />
-            </Link>
-          ))}
-        </div>
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            {[...Array(8)].map((_, index) => (
+              <div key={index} className="bg-gray-900 rounded-xl overflow-hidden animate-pulse">
+                <div className="h-48 bg-gray-800"></div>
+                <div className="p-6">
+                  <div className="h-4 bg-gray-800 rounded mb-3"></div>
+                  <div className="h-3 bg-gray-800 rounded mb-4 w-3/4"></div>
+                  <div className="h-3 bg-gray-800 rounded mb-6"></div>
+                  <div className="h-10 bg-gray-800 rounded"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            {courses.map(course => (
+              <Link key={course.id} to={`/course/${course.id}`}>
+                <div className="bg-gray-900 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+                  <div 
+                    className="h-48 relative overflow-hidden"
+                    style={{
+                      background: `linear-gradient(135deg, ${course.gradient})`,
+                    }}
+                  >
+                    <img 
+                      src={course.image} 
+                      alt={course.title}
+                      className="w-full h-full object-cover opacity-80 mix-blend-overlay"
+                    />
+                    <div className="absolute top-4 left-4">
+                      <span className="bg-black bg-opacity-60 text-white px-3 py-1 rounded-full text-xs font-medium">
+                        {course.category}
+                      </span>
+                    </div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-white text-4xl opacity-90">
+                        {course.icon}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="p-6">
+                    <h3 className="text-white text-xl font-bold mb-3 leading-tight">
+                      {course.title}
+                    </h3>
+                    
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-gray-400 text-sm">{course.category}</span>
+                      <div className="flex items-center text-orange-400 text-sm">
+                        <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.414-1.414L11 9.586V6z" clipRule="evenodd" />
+                        </svg>
+                        {course.duration}
+                      </div>
+                    </div>
+                    
+                    <p className="text-gray-300 text-sm mb-6 leading-relaxed">
+                      {course.description}
+                    </p>
+                    
+                    <div className="w-full bg-gray-800 hover:bg-gray-700 text-white py-3 rounded-lg font-medium transition-colors duration-300 text-center">
+                      Acceder al curso
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
 
-        {filteredCourses.length === 0 && (
+        {!loading && courses.length === 0 && (
           <div className="text-center py-12">
             <div className="text-gray-500 text-6xl mb-4">🔍</div>
             <h3 className="text-white text-xl font-bold mb-2">No se encontraron cursos</h3>
@@ -581,8 +649,31 @@ export const AllCoursesPage = () => {
 };
 
 // Dashboard Page
-export const Dashboard = ({ user }) => {
-  if (!user) {
+export const Dashboard = () => {
+  const { user, isAuthenticated } = useAuth();
+  const [enrollments, setEnrollments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      const fetchEnrollments = async () => {
+        try {
+          const enrollmentsData = await enrollmentsAPI.getMyEnrollments();
+          setEnrollments(enrollmentsData);
+        } catch (error) {
+          console.error('Error fetching enrollments:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchEnrollments();
+    } else {
+      setLoading(false);
+    }
+  }, [isAuthenticated]);
+
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
@@ -599,9 +690,13 @@ export const Dashboard = ({ user }) => {
     );
   }
 
-  const enrolledCourses = coursesData.filter(course => 
-    user.enrolledCourses?.includes(course.id)
-  );
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white text-xl">Cargando dashboard...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black py-12 px-6">
@@ -617,41 +712,47 @@ export const Dashboard = ({ user }) => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           <div className="bg-gray-900 rounded-xl p-6">
             <h3 className="text-gray-400 text-sm font-medium mb-2">Cursos Inscritos</h3>
-            <div className="text-3xl font-bold text-white">{user.enrolledCourses?.length || 0}</div>
+            <div className="text-3xl font-bold text-white">{enrollments.length}</div>
           </div>
           <div className="bg-gray-900 rounded-xl p-6">
             <h3 className="text-gray-400 text-sm font-medium mb-2">Lecciones Completadas</h3>
-            <div className="text-3xl font-bold text-white">{user.completedLessons || 0}</div>
+            <div className="text-3xl font-bold text-white">
+              {enrollments.reduce((total, enrollment) => total + enrollment.completed_lessons, 0)}
+            </div>
           </div>
           <div className="bg-gray-900 rounded-xl p-6">
             <h3 className="text-gray-400 text-sm font-medium mb-2">Progreso Total</h3>
-            <div className="text-3xl font-bold text-white">65%</div>
+            <div className="text-3xl font-bold text-white">
+              {enrollments.length > 0 
+                ? Math.round(enrollments.reduce((total, enrollment) => total + enrollment.progress, 0) / enrollments.length)
+                : 0}%
+            </div>
           </div>
         </div>
 
         {/* Current Courses */}
-        {enrolledCourses.length > 0 ? (
+        {enrollments.length > 0 ? (
           <div className="mb-12">
             <h2 className="text-2xl font-bold text-white mb-6">Mis Cursos</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {enrolledCourses.map(course => (
-                <Link key={course.id} to={`/course/${course.id}`}>
+              {enrollments.map(enrollment => (
+                <Link key={enrollment.id} to={`/course/${enrollment.course_id}`}>
                   <div className="bg-gray-900 rounded-xl overflow-hidden hover:shadow-xl transition-shadow">
                     <img 
-                      src={course.image} 
-                      alt={course.title}
+                      src={enrollment.courses.image} 
+                      alt={enrollment.courses.title}
                       className="w-full h-40 object-cover"
                     />
                     <div className="p-6">
-                      <h3 className="text-white font-bold mb-2">{course.title}</h3>
+                      <h3 className="text-white font-bold mb-2">{enrollment.courses.title}</h3>
                       <div className="flex items-center justify-between mb-4">
-                        <span className="text-gray-400 text-sm">{course.category}</span>
-                        <span className="text-orange-400 text-sm">{course.duration}</span>
+                        <span className="text-gray-400 text-sm">{enrollment.courses.category}</span>
+                        <span className="text-orange-400 text-sm">{enrollment.courses.duration}</span>
                       </div>
                       <div className="bg-gray-800 rounded-full h-2 mb-2">
-                        <div className="bg-orange-500 h-2 rounded-full" style={{width: '40%'}}></div>
+                        <div className="bg-orange-500 h-2 rounded-full" style={{width: `${enrollment.progress}%`}}></div>
                       </div>
-                      <p className="text-gray-400 text-sm">40% completado</p>
+                      <p className="text-gray-400 text-sm">{Math.round(enrollment.progress)}% completado</p>
                     </div>
                   </div>
                 </Link>
@@ -677,16 +778,29 @@ export const Dashboard = ({ user }) => {
 };
 
 // Profile Page
-export const ProfilePage = ({ user }) => {
+export const ProfilePage = () => {
+  const { user, updateUser, isAuthenticated } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [formData, setFormData] = useState({
     name: user?.name || '',
-    email: user?.email || '',
     bio: user?.bio || '',
     phone: user?.phone || ''
   });
 
-  if (!user) {
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || '',
+        bio: user.bio || '',
+        phone: user.phone || ''
+      });
+    }
+  }, [user]);
+
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
@@ -710,10 +824,26 @@ export const ProfilePage = ({ user }) => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Here you would update the user data
-    setIsEditing(false);
+    setError('');
+    setSuccess('');
+    setLoading(true);
+
+    try {
+      const result = await updateUser(formData);
+      
+      if (result.success) {
+        setSuccess('Perfil actualizado correctamente');
+        setIsEditing(false);
+      } else {
+        setError(result.error);
+      }
+    } catch (error) {
+      setError('Error al actualizar el perfil');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -742,6 +872,18 @@ export const ProfilePage = ({ user }) => {
               </button>
             </div>
 
+            {error && (
+              <div className="mb-6 bg-red-900 border border-red-700 text-red-100 px-4 py-3 rounded-lg">
+                {error}
+              </div>
+            )}
+
+            {success && (
+              <div className="mb-6 bg-green-900 border border-green-700 text-green-100 px-4 py-3 rounded-lg">
+                {success}
+              </div>
+            )}
+
             {isEditing ? (
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -753,18 +895,6 @@ export const ProfilePage = ({ user }) => {
                       type="text"
                       name="name"
                       value={formData.name}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-400 text-sm font-medium mb-2">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
                       onChange={handleChange}
                       className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
                     />
@@ -799,9 +929,10 @@ export const ProfilePage = ({ user }) => {
                 <div className="flex justify-end">
                   <button
                     type="submit"
-                    className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded-lg font-semibold transition-colors"
+                    disabled={loading}
+                    className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50"
                   >
-                    Guardar Cambios
+                    {loading ? 'Guardando...' : 'Guardar Cambios'}
                   </button>
                 </div>
               </form>
@@ -829,16 +960,13 @@ export const ProfilePage = ({ user }) => {
                   <h3 className="text-white text-lg font-semibold mb-4">Estadísticas</h3>
                   <div className="space-y-4">
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Cursos inscritos</span>
-                      <span className="text-white font-medium">{user.enrolledCourses?.length || 0}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Lecciones completadas</span>
-                      <span className="text-white font-medium">{user.completedLessons || 0}</span>
-                    </div>
-                    <div className="flex justify-between">
                       <span className="text-gray-400">Miembro desde</span>
-                      <span className="text-white font-medium">Enero 2025</span>
+                      <span className="text-white font-medium">
+                        {new Date(user.created_at).toLocaleDateString('es-ES', { 
+                          year: 'numeric', 
+                          month: 'long' 
+                        })}
+                      </span>
                     </div>
                   </div>
                 </div>

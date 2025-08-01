@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from './hooks/useAuth';
 
 // Header Component
-export const Header = ({ user, onLogout }) => {
+export const Header = () => {
+  const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleLogout = () => {
-    onLogout();
+    logout();
     navigate('/');
     setIsMenuOpen(false);
   };
@@ -47,7 +49,7 @@ export const Header = ({ user, onLogout }) => {
         <Link to="/cursos" className="text-gray-300 hover:text-white transition-colors">
           Todos los cursos
         </Link>
-        {user ? (
+        {isAuthenticated ? (
           <>
             <Link to={getDashboardLink()} className="text-gray-300 hover:text-white transition-colors">
               {getDashboardText()}
@@ -256,11 +258,10 @@ export const HeroSection = () => {
 };
 
 // Course Card Component
-export const CourseCard = ({ course, onClick }) => {
+export const CourseCard = ({ course }) => {
   return (
     <div 
-      className="bg-gray-900 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 cursor-pointer"
-      onClick={() => onClick && onClick(course)}
+      className="bg-gray-900 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
     >
       <div 
         className="h-48 relative overflow-hidden"
@@ -313,89 +314,51 @@ export const CourseCard = ({ course, onClick }) => {
 };
 
 // Courses Section
-export const CoursesSection = ({ onCourseClick }) => {
-  const courses = [
-    {
-      id: 1,
-      title: "Domina tus finanzas personales desde cero",
-      category: "Inversiones",
-      duration: "3h 22min",
-      description: "Aprende a tomar el control de tu dinero desde cero y de forma sencilla de forma definitiva.",
-      image: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=400&q=80",
-      gradient: "#10B981, #059669",
-      icon: "💰"
-    },
-    {
-      id: 2,
-      title: "Curso completo de ChatGPT desde cero",
-      category: "Tecnología",
-      duration: "3h 45min",
-      description: "Aprende a utilizar ChatGPT para resolver problemas, optimizar tareas y mejorar tu productividad.",
-      image: "https://images.unsplash.com/photo-1697577418970-95d99b5a55cf?auto=format&fit=crop&w=400&q=80",
-      gradient: "#06B6D4, #0891B2",
-      icon: "🤖"
-    },
-    {
-      id: 3,
-      title: "Crea un canal de YouTube sin hacer vídeos",
-      category: "Marketing",
-      duration: "2h 19min",
-      description: "Aprende a crear un canal automatizado que genere ingresos sin la necesidad de grabar vídeos.",
-      image: "https://images.unsplash.com/photo-1459184070881-58235578f004?auto=format&fit=crop&w=400&q=80",
-      gradient: "#EF4444, #DC2626",
-      icon: "▶️"
-    },
-    {
-      id: 4,
-      title: "Cómo ganar dinero con el Arbitraje",
-      category: "Inversiones",
-      duration: "1h 02min",
-      description: "Descubre una estrategia efectiva para operar con criptoactivos y registra tus operaciones paso a paso.",
-      image: "https://images.unsplash.com/photo-1640161704729-cbe966a08476?auto=format&fit=crop&w=400&q=80",
-      gradient: "#F59E0B, #D97706",
-      icon: "₿"
-    },
-    {
-      id: 5,
-      title: "Curso básico sobre Trading en Forex desde cero",
-      category: "Inversiones",
-      duration: "1h 06min",
-      description: "Aprende las bases del trading de forex y domina una estrategia rentable paso a paso.",
-      image: "https://images.unsplash.com/photo-1612178991541-b48cc8e92a4d?auto=format&fit=crop&w=400&q=80",
-      gradient: "#06B6D4, #0284C7",
-      icon: "📊"
-    },
-    {
-      id: 6,
-      title: "Curso de arbitraje en Amazon FBA desde cero",
-      category: "Ecommerce",
-      duration: "4h 27min",
-      description: "Aprende a ganar dinero con Amazon FBA dominando el arbitraje paso a paso desde cero.",
-      image: "https://images.unsplash.com/photo-1688561808434-886a6dd97b8c?auto=format&fit=crop&w=400&q=80",
-      gradient: "#F59E0B, #D97706",
-      icon: "📦"
-    },
-    {
-      id: 7,
-      title: "Curso de inversión inmobiliaria",
-      category: "Inversiones",
-      duration: "2h 21min",
-      description: "Aprende a realizar tu primera inversión inmobiliaria con poco dinero paso a paso.",
-      image: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=400&q=80",
-      gradient: "#8B5CF6, #7C3AED",
-      icon: "🏠"
-    },
-    {
-      id: 8,
-      title: "Fundamentos sobre Criptomonedas",
-      category: "Inversiones",
-      duration: "4h 13min",
-      description: "Aprende los fundamentos de invertir en criptomonedas y cómo generar ingreso con ellas de forma segura.",
-      image: "https://images.unsplash.com/photo-1639754390580-2e7437267698?auto=format&fit=crop&w=400&q=80",
-      gradient: "#10B981, #059669",
-      icon: "🚀"
-    }
-  ];
+export const CoursesSection = () => {
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const { coursesAPI } = await import('./services/api');
+        const coursesData = await coursesAPI.getCourses({ limit: 8 });
+        setCourses(coursesData);
+      } catch (error) {
+        console.error('Error fetching courses:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCourses();
+  }, []);
+
+  if (loading) {
+    return (
+      <section className="bg-black py-20 px-6">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-white text-4xl md:text-5xl font-bold text-center mb-16">
+            Explora nuestros cursos
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+            {[...Array(8)].map((_, index) => (
+              <div key={index} className="bg-gray-900 rounded-xl overflow-hidden animate-pulse">
+                <div className="h-48 bg-gray-800"></div>
+                <div className="p-6">
+                  <div className="h-4 bg-gray-800 rounded mb-3"></div>
+                  <div className="h-3 bg-gray-800 rounded mb-4 w-3/4"></div>
+                  <div className="h-3 bg-gray-800 rounded mb-6"></div>
+                  <div className="h-10 bg-gray-800 rounded"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
 
   return (
     <section className="bg-black py-20 px-6">
@@ -406,7 +369,9 @@ export const CoursesSection = ({ onCourseClick }) => {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           {courses.map((course) => (
-            <CourseCard key={course.id} course={course} onClick={onCourseClick} />
+            <Link key={course.id} to={`/course/${course.id}`}>
+              <CourseCard course={course} />
+            </Link>
           ))}
         </div>
         
@@ -456,80 +421,5 @@ export const Footer = () => {
         </p>
       </div>
     </footer>
-  );
-};
-
-// Modal Component for Course Details
-export const CourseModal = ({ course, isOpen, onClose }) => {
-  const navigate = useNavigate();
-  
-  if (!isOpen || !course) return null;
-
-  const handleStartCourse = () => {
-    navigate(`/course/${course.id}`);
-    onClose();
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="relative">
-          <img 
-            src={course.image} 
-            alt={course.title}
-            className="w-full h-64 object-cover"
-          />
-          <button 
-            onClick={onClose}
-            className="absolute top-4 right-4 bg-black bg-opacity-50 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-opacity-75 transition-colors"
-          >
-            ✕
-          </button>
-        </div>
-        
-        <div className="p-8">
-          <h2 className="text-white text-2xl font-bold mb-4">{course.title}</h2>
-          <div className="flex items-center space-x-4 mb-6">
-            <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm">
-              {course.category}
-            </span>
-            <span className="text-gray-400 text-sm">⏱ {course.duration}</span>
-          </div>
-          
-          <p className="text-gray-300 mb-8 leading-relaxed">
-            {course.description}
-          </p>
-          
-          <div className="space-y-4 mb-8">
-            <h3 className="text-white text-lg font-semibold">Lo que aprenderás:</h3>
-            <ul className="text-gray-300 space-y-2">
-              <li className="flex items-start">
-                <span className="text-green-400 mr-2">✓</span>
-                Conceptos fundamentales desde cero
-              </li>
-              <li className="flex items-start">
-                <span className="text-green-400 mr-2">✓</span>
-                Estrategias prácticas aplicables
-              </li>
-              <li className="flex items-start">
-                <span className="text-green-400 mr-2">✓</span>
-                Casos de estudio reales
-              </li>
-              <li className="flex items-start">
-                <span className="text-green-400 mr-2">✓</span>
-                Herramientas y recursos adicionales
-              </li>
-            </ul>
-          </div>
-          
-          <button 
-            onClick={handleStartCourse}
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white py-4 rounded-lg text-lg font-semibold transition-colors"
-          >
-            Ver curso completo
-          </button>
-        </div>
-      </div>
-    </div>
   );
 };
