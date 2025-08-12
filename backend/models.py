@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field, EmailStr
 from typing import Optional, List
 from datetime import datetime
 from enum import Enum
+import uuid
 
 class UserRole(str, Enum):
     STUDENT = "student"

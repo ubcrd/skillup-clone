@@ -1,5 +1,6 @@
 import { useState, useEffect, createContext, useContext } from 'react';
-import { authAPI } from '../services/api';
+import { supabase } from '@/lib/supabase';
+import { authAPI } from '@/services/api';
 
 const AuthContext = createContext();
 
@@ -16,80 +17,61 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in on app start
-    const token = localStorage.getItem('access_token');
-    const savedUser = localStorage.getItem('user');
-    
-    if (token && savedUser) {
-      try {
-        const userData = JSON.parse(savedUser);
-        setUser(userData);
-      } catch (error) {
-        console.error('Error parsing saved user data:', error);
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('user');
+    let mounted = true;
+    const init = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const profile = await authAPI.getCurrentUser().catch(() => null);
+        if (mounted) setUser(profile);
       }
-    }
-    
-    setLoading(false);
+      if (mounted) setLoading(false);
+    };
+    init();
+    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session) {
+        const profile = await authAPI.getCurrentUser().catch(() => null);
+        setUser(profile);
+      } else {
+        setUser(null);
+      }
+    });
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (credentials) => {
     try {
-      const response = await authAPI.login(credentials);
-      const { access_token, user: userData } = response;
-      
-      localStorage.setItem('access_token', access_token);
-      localStorage.setItem('user', JSON.stringify(userData));
-      setUser(userData);
-      
-      return { success: true, user: userData };
+      const { access_token, user: profile } = await authAPI.login(credentials);
+      setUser(profile);
+      return { success: true, user: profile, access_token };
     } catch (error) {
-      console.error('Login error:', error);
-      return { 
-        success: false, 
-        error: error.response?.data?.detail || 'Error al iniciar sesión' 
-      };
+      return { success: false, error: error.message || 'Error al iniciar sesión' };
     }
   };
 
   const register = async (userData) => {
     try {
-      const response = await authAPI.register(userData);
-      const { access_token, user: newUser } = response;
-      
-      localStorage.setItem('access_token', access_token);
-      localStorage.setItem('user', JSON.stringify(newUser));
-      setUser(newUser);
-      
-      return { success: true, user: newUser };
+      const { access_token, user: profile } = await authAPI.register(userData);
+      setUser(profile);
+      return { success: true, user: profile, access_token };
     } catch (error) {
-      console.error('Register error:', error);
-      return { 
-        success: false, 
-        error: error.response?.data?.detail || 'Error al registrarse' 
-      };
+      return { success: false, error: error.message || 'Error al registrarse' };
     }
   };
 
   const logout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('user');
-    setUser(null);
+    supabase.auth.signOut().finally(() => setUser(null));
   };
 
   const updateUser = async (updateData) => {
     try {
-      const updatedUser = await authAPI.updateProfile(updateData);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      setUser(updatedUser);
-      return { success: true, user: updatedUser };
+      const updated = await authAPI.updateProfile(updateData);
+      setUser(updated);
+      return { success: true, user: updated };
     } catch (error) {
-      console.error('Update user error:', error);
-      return { 
-        success: false, 
-        error: error.response?.data?.detail || 'Error al actualizar perfil' 
-      };
+      return { success: false, error: error.message || 'Error al actualizar perfil' };
     }
   };
 

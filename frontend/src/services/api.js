@@ -1,141 +1,222 @@
-import axios from 'axios';
+import { supabase } from '@/lib/supabase';
 
-// Create axios instance with base configuration
-const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000/api',
-  headers: {
-    'Content-Type': 'application/json',
-  },
+const normalizeCourse = (c) => ({
+  id: c.id,
+  title: c.title,
+  description: c.description,
+  category: c.category,
+  duration: c.duration,
+  image: c.image,
+  gradient: c.gradient,
+  icon: c.icon,
+  videoUrl: c.video_url || '',
+  lessons: c.lessons ?? 0,
+  price: Number(c.price ?? 0),
+  students: c.students ?? 0,
+  rating: Number(c.rating ?? 0),
+  instructor_name: c.instructor?.name ?? '',
+  instructor_avatar: c.instructor?.avatar ?? '',
 });
 
-// Request interceptor to add auth token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Response interceptor to handle auth errors
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Clear token and redirect to login
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
+const getCurrentProfile = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single();
+  if (error) throw error;
+  return data;
+};
 
 // Auth API
 export const authAPI = {
-  login: async (credentials) => {
-    const response = await api.post('/login', credentials);
-    return response.data;
+  login: async ({ email, password }) => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    const profile = await getCurrentProfile();
+    return { access_token: data.session?.access_token, user: profile };
   },
-  
-  register: async (userData) => {
-    const response = await api.post('/register', userData);
-    return response.data;
+  register: async ({ email, password, name }) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { name } },
+    });
+    if (error) throw error;
+    const userId = data.user?.id;
+    if (userId) {
+      await supabase.from('profiles').upsert({
+        id: userId,
+        name,
+        email,
+        role: 'student',
+      });
+    }
+    const profile = await getCurrentProfile();
+    return { access_token: data.session?.access_token, user: profile };
   },
-  
-  getCurrentUser: async () => {
-    const response = await api.get('/users/me');
-    return response.data;
-  },
-  
-  updateProfile: async (userData) => {
-    const response = await api.put('/users/me', userData);
-    return response.data;
+  getCurrentUser: async () => getCurrentProfile(),
+  updateProfile: async (updates) => {
+    const profile = await getCurrentProfile();
+    if (!profile) throw new Error('No authenticated user');
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', profile.id)
+      .select('*')
+      .single();
+    if (error) throw error;
+    return data;
   },
 };
 
 // Courses API
 export const coursesAPI = {
-  getCourses: async (params = {}) => {
-    const response = await api.get('/courses', { params });
-    return response.data;
+  getCourses: async ({ limit = 100, offset = 0, category, search } = {}) => {
+    let query = supabase
+      .from('courses')
+      .select('*, instructor:profiles!courses_instructor_id_fkey(name, avatar)')
+      .range(offset, offset + limit - 1);
+    if (category) query = query.eq('category', category);
+    const { data, error } = await query;
+    if (error) throw error;
+    let items = data.map(normalizeCourse);
+    if (search) {
+      const q = search.toLowerCase();
+      items = items.filter(c => c.title.toLowerCase().includes(q) || c.description.toLowerCase().includes(q));
+    }
+    return items;
   },
-  
   getCourse: async (courseId) => {
-    const response = await api.get(`/courses/${courseId}`);
-    return response.data;
+    const { data, error } = await supabase
+      .from('courses')
+      .select('*, instructor:profiles!courses_instructor_id_fkey(name, avatar)')
+      .eq('id', courseId)
+      .single();
+    if (error) throw error;
+    return normalizeCourse(data);
   },
-  
   createCourse: async (courseData) => {
-    const response = await api.post('/courses', courseData);
-    return response.data;
+    const me = await getCurrentProfile();
+    if (!me) throw new Error('Not authenticated');
+    const payload = { ...courseData, instructor_id: me.id };
+    const { data, error } = await supabase
+      .from('courses')
+      .insert(payload)
+      .select('*')
+      .single();
+    if (error) throw error;
+    return data;
   },
-  
   updateCourse: async (courseId, courseData) => {
-    const response = await api.put(`/courses/${courseId}`, courseData);
-    return response.data;
+    const { data, error } = await supabase
+      .from('courses')
+      .update(courseData)
+      .eq('id', courseId)
+      .select('*')
+      .single();
+    if (error) throw error;
+    return data;
   },
-  
   deleteCourse: async (courseId) => {
-    const response = await api.delete(`/courses/${courseId}`);
-    return response.data;
+    const { error } = await supabase.from('courses').delete().eq('id', courseId);
+    if (error) throw error;
+    return { success: true };
   },
 };
 
 // Enrollments API
 export const enrollmentsAPI = {
   enrollInCourse: async (courseId) => {
-    const response = await api.post('/enrollments', { course_id: courseId });
-    return response.data;
+    const me = await getCurrentProfile();
+    if (!me) throw new Error('Not authenticated');
+    const { data, error } = await supabase
+      .from('enrollments')
+      .insert({ user_id: me.id, course_id: courseId })
+      .select('*')
+      .single();
+    if (error) throw error;
+    return data;
   },
-  
   getMyEnrollments: async () => {
-    const response = await api.get('/enrollments/me');
-    return response.data;
+    const me = await getCurrentProfile();
+    if (!me) return [];
+    const { data, error } = await supabase
+      .from('enrollments')
+      .select('*, courses(*)')
+      .eq('user_id', me.id);
+    if (error) throw error;
+    return data;
   },
-  
   updateProgress: async (enrollmentId, progress, completedLessons) => {
-    const response = await api.put(`/enrollments/${enrollmentId}/progress`, null, {
-      params: { progress, completed_lessons: completedLessons }
-    });
-    return response.data;
+    const update = { progress, completed_lessons: completedLessons };
+    if (progress >= 100) update.completed_at = new Date().toISOString();
+    const { data, error } = await supabase
+      .from('enrollments')
+      .update(update)
+      .eq('id', enrollmentId)
+      .select('*')
+      .single();
+    if (error) throw error;
+    return data;
   },
 };
 
 // Certificates API
 export const certificatesAPI = {
-  getCertificates: async (params = {}) => {
-    const response = await api.get('/certificates', { params });
-    return response.data;
+  getCertificates: async () => {
+    const { data, error } = await supabase
+      .from('certificates')
+      .select('*, student:profiles!certificates_user_id_fkey(name), course:courses!certificates_course_id_fkey(title), instructor:profiles!certificates_instructor_id_fkey(name)');
+    if (error) throw error;
+    return data.map(c => ({
+      ...c,
+      student_name: c.student?.name,
+      course_name: c.course?.title,
+      instructor_name: c.instructor?.name,
+    }));
   },
-  
   getMyCertificates: async () => {
-    const response = await api.get('/certificates/me');
-    return response.data;
+    const me = await getCurrentProfile();
+    if (!me) return [];
+    const { data, error } = await supabase
+      .from('certificates')
+      .select('*, course:courses!certificates_course_id_fkey(title), instructor:profiles!certificates_instructor_id_fkey(name)')
+      .eq('user_id', me.id);
+    if (error) throw error;
+    return data.map(c => ({
+      ...c,
+      course_name: c.course?.title,
+      instructor_name: c.instructor?.name,
+    }));
   },
-  
   createCertificate: async (certificateData) => {
-    const response = await api.post('/certificates', certificateData);
-    return response.data;
+    const { data, error } = await supabase
+      .from('certificates')
+      .insert(certificateData)
+      .select('*')
+      .single();
+    if (error) throw error;
+    return data;
   },
 };
 
 // Status API (keeping existing functionality)
 export const statusAPI = {
   createStatusCheck: async (clientName) => {
-    const response = await api.post('/status', { client_name: clientName });
-    return response.data;
+    const { data, error } = await supabase
+      .from('status_checks')
+      .insert({ client_name: clientName })
+      .select('*')
+      .single();
+    if (error) throw error;
+    return data;
   },
-  
   getStatusChecks: async () => {
-    const response = await api.get('/status');
-    return response.data;
+    const { data, error } = await supabase.from('status_checks').select('*').limit(1000);
+    if (error) throw error;
+    return data;
   },
 };
-
-export default api;

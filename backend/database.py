@@ -20,7 +20,9 @@ def async_supabase(func):
     @wraps(func)
     async def wrapper(*args, **kwargs):
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, func, *args, **kwargs)
+        from functools import partial
+        bound = partial(func, *args, **kwargs)
+        return await loop.run_in_executor(None, bound)
     return wrapper
 
 class Database:
